@@ -1,5 +1,6 @@
 ﻿using Domain.DTOs;
-using Domain.Interfaces;
+using Domain.Interfaces.Repository;
+using Domain.Interfaces.Service;
 using Domain.Models;
 using Domain.Shared;
 

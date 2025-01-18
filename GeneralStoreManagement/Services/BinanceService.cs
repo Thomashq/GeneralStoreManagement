@@ -1,5 +1,8 @@
-﻿using System.Collections.Concurrent;
+﻿using Domain.Interfaces.Service;
+using System.Collections.Concurrent;
+using System.Net.Http;
 using System.Net.WebSockets;
+using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 
@@ -10,13 +13,47 @@ namespace GeneralStoreManagement.Services
         private readonly ConcurrentDictionary<string, ClientWebSocket> _webSocketConnections;
         private readonly ConcurrentDictionary<string, ConcurrentDictionary<string, object>> _currentData;
         private readonly CancellationTokenSource _cancellationTokenSource;
+        private readonly string _apiKey;
+        private readonly string _apiSecret;
+        private readonly HttpClient _httpClient;
         private const string BinanceWebSocketBaseUrl = "wss://stream.binance.com:9443/ws/";
 
-        public BinanceService()
+        public BinanceService(string apiKey, string apiSecret)
         {
             _webSocketConnections = new ConcurrentDictionary<string, ClientWebSocket>();
             _currentData = new ConcurrentDictionary<string, ConcurrentDictionary<string, object>>();
             _cancellationTokenSource = new CancellationTokenSource();
+            _apiKey = apiKey;
+            _apiSecret = apiSecret;
+            _httpClient = new HttpClient { BaseAddress = new Uri("https://api.binance.com") };
+        }
+        public async Task<string> GetAccountInfoAsync()
+        {
+            var endpoint = "/api/v3/account";
+            var timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+            var queryString = $"timestamp={timestamp}";
+
+            var signature = GenerateSignature(queryString);
+            var requestUrl = $"{endpoint}?{queryString}&signature={signature}";
+
+            using var request = new HttpRequestMessage(HttpMethod.Get, requestUrl);
+            request.Headers.Add("X-MBX-APIKEY", _apiKey);
+
+            var response = await _httpClient.SendAsync(request);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                throw new Exception($"Erro ao acessar informações da conta: {response.StatusCode} - {await response.Content.ReadAsStringAsync()}");
+            }
+
+            return await response.Content.ReadAsStringAsync();
+        }
+
+        private string GenerateSignature(string queryString)
+        {
+            using var hmac = new HMACSHA256(Encoding.UTF8.GetBytes(_apiSecret));
+            var hash = hmac.ComputeHash(Encoding.UTF8.GetBytes(queryString));
+            return BitConverter.ToString(hash).Replace("-", "").ToLower();
         }
 
         public async Task ConnectAsync(string pair)

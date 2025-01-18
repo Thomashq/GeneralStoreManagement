@@ -1,8 +1,8 @@
-﻿using Domain.Interfaces;
-using Domain.Models;
+﻿using Domain.Models;
 using Microsoft.EntityFrameworkCore;
 using System.Linq.Expressions;
 using System.Linq;
+using Domain.Interfaces.Repository;
 
 namespace Infraestructure.Repositories
 {

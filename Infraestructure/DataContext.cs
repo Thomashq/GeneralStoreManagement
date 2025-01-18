@@ -7,6 +7,7 @@ namespace Infraestructure
     {
         public DataContext(DbContextOptions<DataContext> options) : base(options) { }
         public DbSet<Product> Product { get; set; }
+        public DbSet<Account> Accounts { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
